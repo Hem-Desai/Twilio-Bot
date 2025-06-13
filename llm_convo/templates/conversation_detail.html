@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Conversation Details - AI Phone Bot</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background-color: #f5f7fa;
+        color: #333;
+        line-height: 1.6;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem 0;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .header-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .header h1 {
+        font-size: 1.8rem;
+      }
+
+      .back-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: background 0.2s;
+      }
+
+      .back-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      .conversation-info {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .info-item {
+        text-align: center;
+      }
+
+      .info-label {
+        color: #666;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.5rem;
+      }
+
+      .info-value {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #333;
+      }
+
+      .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        text-transform: uppercase;
+      }
+
+      .status-active {
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .status-completed {
+        background: #cce7ff;
+        color: #004085;
+      }
+
+      .status-failed {
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .messages-section {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .section-header {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-bottom: 1px solid #e9ecef;
+      }
+
+      .section-header h2 {
+        color: #333;
+      }
+
+      .messages-container {
+        max-height: 600px;
+        overflow-y: auto;
+        padding: 1rem;
+      }
+
+      .message {
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+
+      .message.user {
+        flex-direction: row-reverse;
+      }
+
+      .message-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+      }
+
+      .message.bot .message-avatar {
+        background: #667eea;
+        color: white;
+      }
+
+      .message.user .message-avatar {
+        background: #28a745;
+        color: white;
+      }
+
+      .message-content {
+        flex: 1;
+        max-width: 70%;
+      }
+
+      .message-bubble {
+        padding: 1rem;
+        border-radius: 15px;
+        margin-bottom: 0.5rem;
+        word-wrap: break-word;
+      }
+
+      .message.bot .message-bubble {
+        background: #f1f3f4;
+        border-bottom-left-radius: 5px;
+      }
+
+      .message.user .message-bubble {
+        background: #667eea;
+        color: white;
+        border-bottom-right-radius: 5px;
+      }
+
+      .message-meta {
+        font-size: 0.8rem;
+        color: #666;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .message.user .message-meta {
+        justify-content: flex-end;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+      }
+
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 1rem;
+        border-radius: 5px;
+        margin: 1rem 0;
+      }
+
+      .summary-content {
+        line-height: 1.6;
+        font-size: 1rem;
+        color: #333;
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+        margin: 1rem 0;
+      }
+
+      .summary-content h3 {
+        margin-top: 0;
+        color: #667eea;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+      }
+
+      .summary-content ul {
+        margin: 0.5rem 0;
+        padding-left: 1.5rem;
+      }
+
+      .summary-content li {
+        margin-bottom: 0.5rem;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 1rem;
+        }
+
+        .header-content {
+          padding: 0 1rem;
+          flex-direction: column;
+          gap: 1rem;
+          text-align: center;
+        }
+
+        .info-grid {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+
+        .message-content {
+          max-width: 85%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="header-content">
+        <h1>📞 Conversation Details</h1>
+        <a href="/" class="back-btn">← Back to Dashboard</a>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- Conversation Info -->
+      <div class="conversation-info">
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Call ID</div>
+            <div class="info-value" id="call-sid">Loading...</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Phone Number</div>
+            <div class="info-value" id="caller-phone">Loading...</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Start Time</div>
+            <div class="info-value" id="start-time">Loading...</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Duration</div>
+            <div class="info-value" id="duration">Loading...</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Status</div>
+            <div class="info-value" id="status">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conversation Summary -->
+      <div class="messages-section" id="summary-section" style="display: none">
+        <div class="section-header">
+          <h2>🤖 AI-Generated Summary</h2>
+          <button
+            class="refresh-btn"
+            id="generate-summary-btn"
+            onclick="generateSummary()"
+            style="display: none"
+          >
+            Generate Summary
+          </button>
+        </div>
+        <div class="messages-container" style="max-height: none; padding: 2rem">
+          <div id="summary-content" class="loading">Loading summary...</div>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="messages-section">
+        <div class="section-header">
+          <h2>Conversation Transcript</h2>
+        </div>
+
+        <div class="messages-container" id="messages-container">
+          <div class="loading">Loading conversation...</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const conversationId = "{{ conversation_id }}";
+
+      document.addEventListener("DOMContentLoaded", loadConversation);
+
+      async function loadConversation() {
+        try {
+          const response = await fetch(`/api/conversations/${conversationId}`);
+          const conversation = await response.json();
+
+          if (conversation.error) {
+            throw new Error(conversation.error);
+          }
+
+          displayConversationInfo(conversation);
+          displayMessages(conversation.messages);
+          displaySummary(conversation);
+        } catch (error) {
+          console.error("Error loading conversation:", error);
+          document.getElementById("messages-container").innerHTML =
+            '<div class="error">Error loading conversation. Please try again.</div>';
+        }
+      }
+
+      function displayConversationInfo(conversation) {
+        document.getElementById("call-sid").textContent = conversation.call_sid;
+        document.getElementById("caller-phone").textContent =
+          conversation.caller_phone || "Unknown";
+        document.getElementById("start-time").textContent =
+          conversation.start_time
+            ? new Date(conversation.start_time).toLocaleString()
+            : "N/A";
+
+        const duration = conversation.duration_seconds
+          ? Math.round((conversation.duration_seconds / 60) * 10) / 10 +
+            " minutes"
+          : "N/A";
+        document.getElementById("duration").textContent = duration;
+
+        const statusElement = document.getElementById("status");
+        const statusClass = `status-${conversation.status}`;
+        statusElement.innerHTML = `<span class="status-badge ${statusClass}">${conversation.status}</span>`;
+      }
+
+      function displaySummary(conversation) {
+        const summarySection = document.getElementById("summary-section");
+        const summaryContent = document.getElementById("summary-content");
+        const generateBtn = document.getElementById("generate-summary-btn");
+
+        if (conversation.has_summary && conversation.summary) {
+          // Show existing summary
+          summarySection.style.display = "block";
+          summaryContent.innerHTML = `<div class="summary-content">${conversation.summary.replace(
+            /\n/g,
+            "<br>"
+          )}</div>`;
+          generateBtn.style.display = "none";
+        } else if (conversation.status === "completed") {
+          // Show generate button for completed conversations
+          summarySection.style.display = "block";
+          summaryContent.innerHTML =
+            '<div class="loading">No summary available yet.</div>';
+          generateBtn.style.display = "block";
+        } else {
+          // Hide summary section for active/failed conversations
+          summarySection.style.display = "none";
+        }
+      }
+
+      async function generateSummary() {
+        try {
+          const button = document.getElementById("generate-summary-btn");
+          const originalText = button.textContent;
+          button.disabled = true;
+          button.textContent = "Generating...";
+
+          const response = await fetch(
+            `/api/conversations/${conversationId}/summary`,
+            {
+              method: "POST",
+            }
+          );
+
+          const result = await response.json();
+
+          if (result.success) {
+            document.getElementById(
+              "summary-content"
+            ).innerHTML = `<div class="summary-content">${result.summary.replace(
+              /\n/g,
+              "<br>"
+            )}</div>`;
+            button.style.display = "none";
+          } else {
+            alert(`Failed to generate summary: ${result.error}`);
+            button.disabled = false;
+            button.textContent = originalText;
+          }
+        } catch (error) {
+          console.error("Error generating summary:", error);
+          alert("Error generating summary. Please try again.");
+          const button = document.getElementById("generate-summary-btn");
+          button.disabled = false;
+          button.textContent = "Generate Summary";
+        }
+      }
+
+      function displayMessages(messages) {
+        const container = document.getElementById("messages-container");
+
+        if (messages.length === 0) {
+          container.innerHTML =
+            '<div class="loading">No messages in this conversation.</div>';
+          return;
+        }
+
+        let html = "";
+
+        messages.forEach((message) => {
+          const timestamp = message.timestamp
+            ? new Date(message.timestamp).toLocaleString()
+            : "N/A";
+          const duration = message.audio_duration
+            ? `${Math.round(message.audio_duration * 10) / 10}s`
+            : "";
+          const avatar = message.speaker === "bot" ? "🤖" : "👤";
+
+          html += `
+                  <div class="message ${message.speaker}">
+                      <div class="message-avatar">${avatar}</div>
+                      <div class="message-content">
+                          <div class="message-bubble">
+                              ${message.content}
+                          </div>
+                          <div class="message-meta">
+                              <span>${timestamp}</span>
+                              ${
+                                duration
+                                  ? `<span>Duration: ${duration}</span>`
+                                  : ""
+                              }
+                          </div>
+                      </div>
+                  </div>
+              `;
+        });
+
+        container.innerHTML = html;
+
+        // Scroll to bottom
+        container.scrollTop = container.scrollHeight;
+      }
+    </script>
+  </body>
+</html>

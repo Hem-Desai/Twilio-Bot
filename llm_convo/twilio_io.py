@@ -7,7 +7,7 @@ import time
 
 from gevent.pywsgi import WSGIServer
 from twilio.rest import Client
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, Response, request
 from flask_sock import Sock
 import simple_websocket
 import audioop
@@ -44,9 +44,25 @@ class TwilioServer:
         def audio(key):
             return send_from_directory(self.static_dir, str(int(key)) + ".mp3")
 
+        @self.app.route("/health")
+        def health():
+            return {"status": "healthy", "remote_host": self.remote_host, "port": self.port}
+
         @self.app.route("/incoming-voice", methods=["POST"])
         def incoming_voice():
-            return XML_MEDIA_STREAM.format(host=self.remote_host)
+            try:
+                logging.info(f"Incoming voice call webhook triggered")
+                logging.info(f"Request method: {request.method}")
+                logging.info(f"Request headers: {dict(request.headers)}")
+                logging.info(f"Request form data: {dict(request.form)}")
+                logging.info(f"Remote host: {self.remote_host}")
+                xml_response = XML_MEDIA_STREAM.format(host=self.remote_host)
+                logging.info(f"Returning TwiML: {xml_response}")
+                return Response(xml_response, mimetype='text/xml')
+            except Exception as e:
+                logging.error(f"Error in incoming-voice webhook: {e}")
+                # Return a simple response to prevent Twilio errors
+                return Response("<Response><Say>Sorry, there was an error. Please try again.</Say></Response>", mimetype='text/xml')
 
         @self.sock.route("/audiostream", websocket=True)
         def on_media_stream(ws):
