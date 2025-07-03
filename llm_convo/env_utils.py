@@ -107,6 +107,24 @@ def check_twilio_setup() -> bool:
     return True
 
 
+def check_google_places_setup() -> bool:
+    """Check if Google Places API key is set up"""
+    google_api_key = os.getenv("GOOGLE_PLACES_API_KEY")
+    if not google_api_key:
+        print("💡 GOOGLE_PLACES_API_KEY not found (optional for business search)")
+        print("\n🔧 To get a FREE Google Places API key ($200/month credit):")
+        print("1. Visit https://console.cloud.google.com")
+        print("2. Create a new project or select existing")
+        print("3. Enable Places API")
+        print("4. Create API key in 'Credentials'")
+        print("5. Add to your .env file: GOOGLE_PLACES_API_KEY=your-key-here")
+        print("\n💰 FREE tier supports ~4,000 searches/month!")
+        return False
+    
+    print(f"✅ Google Places API key found: {google_api_key[:10]}...")
+    return True
+
+
 def setup_environment() -> bool:
     """
     Complete environment setup - loads .env file and checks required variables

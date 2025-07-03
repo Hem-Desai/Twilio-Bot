@@ -1,24 +1,35 @@
 #!/usr/bin/env python3
 """
-Enhanced AI Phone Bot with Groq (FREE Alternative to OpenAI)
+AI Call Forwarding Service
 
-This example creates a complete AI phone bot system using Groq's free API with:
-- Live transcription and TTS
-- Database storage of conversations
+This example creates a complete AI call forwarding system that:
+- Listens for business requests ("I need a dentist in Mumbai")
+- Searches for businesses in real-time using Google Places API
+- Presents options with ratings and hours
+- Forwards calls directly to selected businesses
+- Logs all interactions to database
+
+The system uses:
+- Groq API for FREE AI conversation (no OpenAI costs!)
+- Google Places API for real-time business search
+- Twilio for call handling and forwarding
+- Local database for conversation tracking
 - Web dashboard for monitoring
-- Multiple bot personalities
-- FREE Groq API (no OpenAI costs!)
 
 Usage:
-    python examples/groq_phone_bot.py --preload_whisper --start_ngrok --bot_type customer_service
+    python examples/call_forwarding_bot.py --preload_whisper --start_ngrok
     
-    Then visit http://localhost:5000 for the dashboard
+    Then call your Twilio number and try:
+    - "I need a dentist in Ahmedabad"
+    - "Find me a restaurant in Mumbai" 
+    - "I want a mechanic near me"
 
 Setup:
     1. Copy .env.example to .env
-    2. Get free Groq API key from https://console.groq.com
-    3. Add GROQ_API_KEY to your .env file
-    4. Set up Twilio credentials in .env file (see TWILIO_SETUP.md)
+    2. Get FREE Groq API key from https://console.groq.com
+    3. Get Google Places API key from Google Cloud Console
+    4. Set up Twilio account and phone number
+    5. Update .env with all API keys
 """
 
 from gevent import monkey
@@ -41,13 +52,7 @@ from llm_convo.twilio_io import TwilioServer
 from llm_convo.enhanced_conversation import run_enhanced_conversation, ConversationLogger
 from llm_convo.database import DatabaseManager
 from llm_convo.dashboard import ConversationDashboard
-from llm_convo.groq_enhanced_agents import (
-    create_groq_customer_service_bot, 
-    create_groq_appointment_scheduler_bot, 
-    create_groq_general_assistant_bot,
-    create_groq_pizza_bot,
-    create_groq_call_forwarding_bot
-)
+from llm_convo.groq_enhanced_agents import create_groq_call_forwarding_bot
 from pyngrok import ngrok
 
 # Create a simple health check app for Railway
@@ -77,20 +82,20 @@ def setup_environment():
             print("📝 Created .env file from .env.example")
             print("🔧 Please edit the .env file with your actual credentials:")
             print("   1. Add your GROQ_API_KEY (get free at https://console.groq.com)")
-            print("   2. Add your Twilio credentials (see TWILIO_SETUP.md)")
-            print("   3. Run this script again")
+            print("   2. Add your GOOGLE_PLACES_API_KEY (get from Google Cloud Console)")
+            print("   3. Add your Twilio credentials (see TWILIO_SETUP.md)")
+            print("   4. Run this script again")
             return False
         
         # Load environment variables
         load_env_file()
         
         # Check Groq setup
-        return check_groq_setup()
+        return check_groq_setup() and check_google_places_setup()
         
     except ImportError:
         print("⚠️ Environment utilities not available. Using system environment variables.")
-        return check_groq_setup_basic()
-
+        return check_groq_setup_basic() and check_google_places_setup()
 
 def check_groq_setup_basic():
     """Basic Groq setup check without env_utils"""
@@ -102,13 +107,29 @@ def check_groq_setup_basic():
         print("2. Sign up for a free account")
         print("3. Go to API Keys section")
         print("4. Create a new API key")
-        print("5. Set environment variable: export GROQ_API_KEY='your-key-here'")
+        print("5. Add to .env file: GROQ_API_KEY='your-key-here'")
         print("\n💡 Groq is completely FREE with generous rate limits!")
         return False
     
     print(f"✅ Groq API key found: {groq_api_key[:10]}...")
     return True
 
+def check_google_places_setup():
+    """Check Google Places API setup"""
+    google_api_key = os.getenv("GOOGLE_PLACES_API_KEY")
+    if not google_api_key:
+        print("❌ GOOGLE_PLACES_API_KEY environment variable not found!")
+        print("\n🔧 To get a Google Places API key:")
+        print("1. Visit https://console.cloud.google.com")
+        print("2. Create a new project or select existing")
+        print("3. Enable Places API")
+        print("4. Create credentials (API Key)")
+        print("5. Add to .env file: GOOGLE_PLACES_API_KEY='your-key-here'")
+        print("\n💰 Google gives $200 free credit monthly (covers ~4000 searches)")
+        return False
+    
+    print(f"✅ Google Places API key found: {google_api_key[:10]}...")
+    return True
 
 def start_dashboard(database_url=None, dashboard_port=5000):
     """Start the web dashboard in a separate thread"""
@@ -120,8 +141,43 @@ def start_dashboard(database_url=None, dashboard_port=5000):
     dashboard_thread.start()
     return dashboard_thread
 
+def print_system_info():
+    """Print system capabilities and setup info"""
+    print("""
+🤖 AI Call Forwarding Service
+=============================
 
-def main(port, remote_host, start_ngrok, bot_type, dashboard_port, preload_whisper):
+🔍 System Capabilities:
+- Real-time business search using Google Places API
+- Live call forwarding to any business
+- AI intent understanding with Groq (FREE!)
+- Conversation logging and dashboard
+- Support for multiple languages
+
+📞 Example Requests:
+- "I need a dentist in Mumbai"
+- "Find me a restaurant in Delhi"  
+- "I want a mechanic near me"
+- "Connect me to a hospital in Bangalore"
+
+🚀 The system will:
+1. Understand your request using AI
+2. Search for businesses in real-time
+3. Present options with ratings and hours
+4. Forward your call directly to chosen business
+5. Log everything for monitoring
+
+🎯 Perfect for:
+- Directory assistance services
+- Business referral services
+- Emergency service routing
+- Customer service automation
+""")
+
+def main(port, remote_host, start_ngrok, dashboard_port, preload_whisper):
+    # Print system info
+    print_system_info()
+    
     # Setup environment first
     if not setup_environment():
         return
@@ -151,6 +207,7 @@ def main(port, remote_host, start_ngrok, bot_type, dashboard_port, preload_whisp
     if start_ngrok and not os.environ.get('RAILWAY_ENVIRONMENT'):
         ngrok_http = ngrok.connect(port)
         remote_host = ngrok_http.public_url.split("//")[1]
+        print(f"🌐 Ngrok tunnel: https://{remote_host}")
     
     # Setup directories
     static_dir = os.path.join(tempfile.gettempdir(), "twilio_static")
@@ -162,7 +219,7 @@ def main(port, remote_host, start_ngrok, bot_type, dashboard_port, preload_whisp
     
     # Start dashboard (only if not Railway or different port)
     if not os.environ.get('RAILWAY_ENVIRONMENT') or dashboard_port != port:
-        logging.info(f"Starting dashboard on http://localhost:{dashboard_port}")
+        logging.info(f"📊 Starting dashboard on http://localhost:{dashboard_port}")
         start_dashboard(database_url, dashboard_port)
     
     # Setup Twilio server
@@ -173,9 +230,12 @@ def main(port, remote_host, start_ngrok, bot_type, dashboard_port, preload_whisp
         logging.info(f"🔗 Set Twilio webhook to: {public_url}/incoming-voice")
         logging.info(f"📊 Dashboard will be at: {public_url}")
     else:
-        logging.info(f"Starting Twilio server at {remote_host} from local:{port}")
-        logging.info(f"Set call webhook to https://{remote_host}/incoming-voice")
-        logging.info(f"Dashboard available at http://localhost:{dashboard_port}")
+        logging.info(f"🚀 Starting Twilio server at {remote_host} from local:{port}")
+        logging.info(f"🔗 Set call webhook to https://{remote_host}/incoming-voice")
+        logging.info(f"📊 Dashboard available at http://localhost:{dashboard_port}")
+    
+    print(f"\n🎯 Ready for business search and call forwarding!")
+    print(f"📞 Call your Twilio number and try: 'I need a dentist in Mumbai'")
     
     tws = TwilioServer(remote_host=remote_host, port=port, static_dir=static_dir)
     tws.start()
@@ -183,116 +243,51 @@ def main(port, remote_host, start_ngrok, bot_type, dashboard_port, preload_whisp
     # Create conversation logger
     conversation_logger = ConversationLogger(db_manager)
     
-    # Get Groq API key
+    # Get API keys
     groq_api_key = os.getenv("GROQ_API_KEY")
+    google_api_key = os.getenv("GOOGLE_PLACES_API_KEY")
     
-    # Create bot based on type using Groq
-    bot_creators = {
-        'customer_service': create_groq_customer_service_bot,
-        'appointment': create_groq_appointment_scheduler_bot,
-        'general': create_groq_general_assistant_bot,
-        'pizza': create_groq_pizza_bot,
-        'call_forwarding': create_groq_call_forwarding_bot
-    }
-    
-    if bot_type not in bot_creators:
-        raise ValueError(f"Unknown bot type: {bot_type}. Available: {list(bot_creators.keys())}")
-    
-    # Handle special case for call forwarding bot that needs Google API key
-    if bot_type == 'call_forwarding':
-        google_api_key = os.getenv("GOOGLE_PLACES_API_KEY")
-        bot = bot_creators[bot_type](conversation_logger, groq_api_key, google_api_key)
-        logging.info(f"Created {bot_type} bot using Groq (FREE!) + Google Places API")
-    else:
-        bot = bot_creators[bot_type](conversation_logger, groq_api_key)
-        logging.info(f"Created {bot_type} bot using Groq (FREE!)")
+    # Create call forwarding bot
+    bot = create_groq_call_forwarding_bot(
+        conversation_logger=conversation_logger, 
+        groq_api_key=groq_api_key,
+        google_api_key=google_api_key
+    )
+    logging.info("🤖 Created call forwarding bot with business search!")
     
     def run_chat(sess):
-        """Handle incoming call session"""
         try:
-            # Create agents for this conversation
+            logging.info("📞 New call received - starting call forwarding session")
             ai_agent, twilio_agent = bot.create_agents(sess)
-            
-            # Wait for media stream to connect
-            while not twilio_agent.session.media_stream_connected():
-                time.sleep(0.1)
-            
-            logging.info("Media stream connected, starting conversation")
-            
-            # Run the enhanced conversation with database logging
             run_enhanced_conversation(ai_agent, twilio_agent, conversation_logger)
-            
-            logging.info("Conversation ended")
-            
         except Exception as e:
-            logging.error(f"Error in conversation: {e}")
-            conversation_logger.end_conversation('failed')
+            logging.error(f"❌ Error in call session: {e}")
     
-    # Set the session handler
     tws.on_session = run_chat
     
-    # Keep the main thread alive
+    logging.info("✅ Call forwarding service is running!")
+    logging.info("🎯 Try calling and saying: 'I need a dentist in your city'")
+    
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        logging.info("Shutting down...")
-        db_manager.close()
-
+        logging.info("\n👋 Shutting down call forwarding service...")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Enhanced AI Phone Bot with FREE Groq API")
-    parser.add_argument("--preload_whisper", action="store_true", 
-                       help="Preload Whisper model for faster startup")
-    parser.add_argument("--start_ngrok", action="store_true", 
-                       help="Start ngrok tunnel for public access")
-    parser.add_argument("--port", type=int, default=8080, 
-                       help="Port for Twilio webhook server")
-    parser.add_argument("--dashboard_port", type=int, default=5000, 
-                       help="Port for web dashboard")
-    parser.add_argument("--remote_host", type=str, default="localhost", 
-                       help="Remote host (ignored if using ngrok)")
-    parser.add_argument("--bot_type", type=str, default="general", 
-                       choices=["customer_service", "appointment", "general", "pizza"],
-                       help="Type of bot to create")
+    parser = argparse.ArgumentParser(description="AI Call Forwarding Service")
+    parser.add_argument("--port", type=int, default=8091, help="Port to run on")
+    parser.add_argument("--remote_host", default="localhost:8091", help="Remote host")
+    parser.add_argument("--start_ngrok", action="store_true", help="Start ngrok tunnel")
+    parser.add_argument("--dashboard_port", type=int, default=5000, help="Dashboard port")
+    parser.add_argument("--preload_whisper", action="store_true", help="Preload Whisper model")
     
     args = parser.parse_args()
-    
-    print(f"""
-🤖 Enhanced AI Phone Bot with FREE Groq API
-
-Configuration:
-- Bot Type: {args.bot_type}
-- Twilio Port: {args.port}
-- Dashboard Port: {args.dashboard_port}
-- Ngrok: {'Yes' if args.start_ngrok else 'No'}
-- Preload Whisper: {'Yes' if args.preload_whisper else 'No'}
-- AI Provider: Groq (FREE!)
-
-💡 Benefits of using Groq:
-- Completely FREE API with generous limits
-- Very fast response times (great for phone calls)
-- Multiple models available (Llama3, Mixtral, etc.)
-- No credit card required
-
-📝 Setup:
-1. Make sure you have a .env file with your credentials
-2. Get free Groq API key from https://console.groq.com
-3. Set up Twilio credentials (see TWILIO_SETUP.md)
-
-After startup:
-1. Set your Twilio webhook to the provided URL
-2. Visit http://localhost:{args.dashboard_port} for the dashboard
-3. Make a call to your Twilio number to test
-
-Press Ctrl+C to stop.
-    """)
     
     main(
         port=args.port,
         remote_host=args.remote_host,
         start_ngrok=args.start_ngrok,
-        bot_type=args.bot_type,
         dashboard_port=args.dashboard_port,
         preload_whisper=args.preload_whisper
     ) 
